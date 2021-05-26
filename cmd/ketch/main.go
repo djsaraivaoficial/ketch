@@ -10,7 +10,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 
 	"github.com/shipa-corp/ketch/cmd/ketch/configuration"
-	packService "github.com/shipa-corp/ketch/internal/pack"
+	"github.com/shipa-corp/ketch/internal/pack"
 )
 
 var (
@@ -23,7 +23,7 @@ func main() {
 	pflag.CommandLine = pflag.NewFlagSet("ketch", pflag.ExitOnError)
 
 	out := os.Stdout
-	packSvc, err := packService.New(out)
+	packSvc, err := pack.New(out)
 	if err != nil {
 		log.Fatalf("couldn't create pack service %q", err)
 	}

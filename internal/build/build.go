@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/shipa-corp/ketch/internal/errors"
-	packService "github.com/shipa-corp/ketch/internal/pack"
+	"github.com/shipa-corp/ketch/internal/pack"
 )
 
 type resourceGetter interface {
@@ -17,7 +17,7 @@ type resourceGetter interface {
 }
 
 type builder interface {
-	BuildAndPushImage(ctx context.Context, request packService.BuildRequest) error
+	BuildAndPushImage(ctx context.Context, request pack.BuildRequest) error
 }
 
 // CreateImageFromSourceRequest contains fields used to build an image from source code.
@@ -63,7 +63,7 @@ func GetSourceHandler(packCLI builder) func(context.Context, *CreateImageFromSou
 			opt(req)
 		}
 
-		packRequest := packService.BuildRequest{
+		packRequest := pack.BuildRequest{
 			Image:      req.Image,
 			Builder:    req.Builder,
 			WorkingDir: req.workingDir,

@@ -11,10 +11,10 @@ import (
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/build"
 	"github.com/shipa-corp/ketch/internal/deploy"
-	packService "github.com/shipa-corp/ketch/internal/pack"
+	"github.com/shipa-corp/ketch/internal/pack"
 )
 
-func newAppCmd(cfg config, out io.Writer, packSvc *packService.Client) *cobra.Command {
+func newAppCmd(cfg config, out io.Writer, packSvc *pack.Client) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "app",
 		Short: "Manage applications",

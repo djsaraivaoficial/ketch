@@ -1,5 +1,5 @@
 // Package pack wraps a pack client and is used for building and pushing images
-package Pack
+package pack
 
 import (
 	"context"

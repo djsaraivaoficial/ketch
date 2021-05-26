@@ -11,15 +11,15 @@ import (
 	"gopkg.in/src-d/go-git.v4"
 
 	"github.com/shipa-corp/ketch/internal/errors"
-	packService "github.com/shipa-corp/ketch/internal/pack"
+	"github.com/shipa-corp/ketch/internal/pack"
 )
 
 type mockBuilder struct {
 	buildAndPushCalls int
-	buildAndPushFn    func(ctx context.Context, req packService.BuildRequest) error
+	buildAndPushFn    func(ctx context.Context, req pack.BuildRequest) error
 }
 
-func (mb *mockBuilder) BuildAndPushImage(ctx context.Context, req packService.BuildRequest) error {
+func (mb *mockBuilder) BuildAndPushImage(ctx context.Context, req pack.BuildRequest) error {
 	mb.buildAndPushCalls += 1
 	return mb.buildAndPushFn(ctx, req)
 }
@@ -45,12 +45,12 @@ func TestGetSourceHandler(t *testing.T) {
 	tt := []struct {
 		name      string
 		wantErr   bool
-		builderFn func(ctx context.Context, req packService.BuildRequest) error
+		builderFn func(ctx context.Context, req pack.BuildRequest) error
 		request   *CreateImageFromSourceRequest
 	}{
 		{
 			name: "happy path",
-			builderFn: func(ctx context.Context, req packService.BuildRequest) error {
+			builderFn: func(ctx context.Context, req pack.BuildRequest) error {
 				assert.Equal(t, req.Image, "acme/superimage")
 				assert.Equal(t, req.WorkingDir, workingDir)
 				return nil
@@ -63,7 +63,7 @@ func TestGetSourceHandler(t *testing.T) {
 		},
 		{
 			name: "failed build",
-			builderFn: func(ctx context.Context, req packService.BuildRequest) error {
+			builderFn: func(ctx context.Context, req pack.BuildRequest) error {
 				return errors.New("failed build")
 			},
 			request: &CreateImageFromSourceRequest{
