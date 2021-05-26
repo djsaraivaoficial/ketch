@@ -48,7 +48,7 @@ func newMockClient() *mockClient {
 			Spec: ketchv1.AppSpec{
 				Description: "foo",
 				Pool:        "initialpool",
-				Platform:    "initialplatform",
+				Builder:     "initialbuilder",
 			},
 		},
 		pool: &ketchv1.Pool{
@@ -164,6 +164,7 @@ func TestNewCommand(t *testing.T) {
 				"--pool", "mypool",
 				"--image", "shipa/go-sample:latest",
 				"--env", "foo=bar,zip=zap",
+				"--builder", "newbuilder",
 			},
 			setup: func(t *testing.T) {
 				dir := t.TempDir()
@@ -175,6 +176,7 @@ func TestNewCommand(t *testing.T) {
 				mock, ok := m.(*mockClient)
 				require.True(t, ok)
 				require.Equal(t, "mypool", mock.app.Spec.Pool)
+				require.Equal(t, "newbuilder", mock.app.Spec.Builder)
 				require.Len(t, mock.app.Spec.Deployments, 1)
 				require.Len(t, mock.app.Spec.Deployments[0].KetchYaml.Kubernetes.Processes, 3)
 				require.Len(t, mock.app.Spec.Env, 2)

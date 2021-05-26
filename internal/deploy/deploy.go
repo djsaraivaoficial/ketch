@@ -72,6 +72,9 @@ func getAppWithUpdater(ctx context.Context, client Client, cs *ChangeSet) (*ketc
 		if err = validateCreateApp(ctx, client, cs.appName, cs); err != nil {
 			return nil, nil, err
 		}
+		if err = validateCreateApp(ctx, client, cs.appName, cs); err != nil {
+			return nil, nil, err
+		}
 		return &app, func(ctx context.Context, app *ketchv1.App, _ bool) error {
 			app.ObjectMeta.Name = cs.appName
 			app.Spec.Deployments = []ketchv1.AppDeploymentSpec{}
@@ -103,6 +106,22 @@ func getUpdatedApp(ctx context.Context, client Client, cs *ChangeSet) (*ketchv1.
 			return err
 		}
 		app = a
+
+		builder, err := cs.getBuilder()
+		if err := assign(err, func() {
+			app.Spec.Builder = builder
+			changed = true
+		}); err != nil {
+			return err
+		}
+
+		buildPacks, err := cs.getBuildPacks()
+		if err := assign(err, func() {
+			app.Spec.BuildPacks = buildPacks
+			changed = true
+		}); err != nil {
+			return err
+		}
 
 		pool, err := cs.getPool(ctx, client)
 		if err := assign(err, func() {
@@ -149,11 +168,6 @@ func deployFromSource(ctx context.Context, svc *Services, app *ketchv1.App, para
 	if err != nil {
 		return err
 	}
-
-	/*var platform ketchv1.Platform
-	if err := svc.Client.Get(ctx, types.NamespacedName{Name: app.Spec.Platform}, &platform); err != nil {
-		return errors.Wrap(err, "failed to get platform %q", app.Spec.Platform)
-	}*/
 
 	var pool ketchv1.Pool
 	if err := svc.Client.Get(ctx, types.NamespacedName{Name: app.Spec.Pool}, &pool); err != nil {
@@ -231,12 +245,6 @@ func deployFromImage(ctx context.Context, svc *Services, app *ketchv1.App, param
 	if err != nil {
 		return err
 	}
-
-	// TODO: adapt to builder
-	/*var platform ketchv1.Platform
-	if err := svc.Client.Get(ctx, types.NamespacedName{Name: app.Spec.Platform}, &platform); err != nil {
-		return errors.Wrap(err, "failed to get platform %q", app.Spec.Platform)
-	}*/
 
 	var pool ketchv1.Pool
 	if err := svc.Client.Get(ctx, types.NamespacedName{Name: app.Spec.Pool}, &pool); err != nil {
