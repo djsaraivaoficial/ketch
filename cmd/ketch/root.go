@@ -56,6 +56,7 @@ func newRootCmd(cfg config, out io.Writer, packSvc *pack.Client) *cobra.Command 
 			return cmd.Usage()
 		},
 	}
+
 	cmd.AddCommand(newAppCmd(cfg, out, packSvc))
 	cmd.AddCommand(newCnameCmd(cfg, out))
 	cmd.AddCommand(newPoolCmd(cfg, out))

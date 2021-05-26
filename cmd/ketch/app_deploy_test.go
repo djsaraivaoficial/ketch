@@ -1,4 +1,4 @@
-package deploy
+package main
 
 import (
 	"bytes"
@@ -19,7 +19,8 @@ import (
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/build"
-	packService "github.com/shipa-corp/ketch/internal/pack"
+	"github.com/shipa-corp/ketch/internal/deploy"
+	"github.com/shipa-corp/ketch/internal/pack"
 )
 
 type getterCreatorMockFn func(m *mockClient, obj runtime.Object) error
@@ -30,9 +31,8 @@ type mockClient struct {
 	create funcMap
 	update funcMap
 
-	app      *ketchv1.App
-	platform *ketchv1.Platform
-	pool     *ketchv1.Pool
+	app  *ketchv1.App
+	pool *ketchv1.Pool
 
 	getCounter    int
 	createCounter int
@@ -57,11 +57,6 @@ func newMockClient() *mockClient {
 			Spec:       ketchv1.PoolSpec{},
 			Status:     ketchv1.PoolStatus{},
 		},
-		platform: &ketchv1.Platform{
-			TypeMeta:   metav1.TypeMeta{},
-			ObjectMeta: metav1.ObjectMeta{},
-			Spec:       ketchv1.PlatformSpec{},
-		},
 	}
 }
 
@@ -75,9 +70,6 @@ func (m *mockClient) Get(_ context.Context, _ client.ObjectKey, obj runtime.Obje
 	switch v := obj.(type) {
 	case *ketchv1.App:
 		*v = *m.app
-		return nil
-	case *ketchv1.Platform:
-		*v = *m.platform
 		return nil
 	case *ketchv1.Pool:
 		*v = *m.pool
@@ -97,9 +89,6 @@ func (m *mockClient) Create(_ context.Context, obj runtime.Object, _ ...client.C
 	case *ketchv1.App:
 		m.app = v
 		return nil
-	case *ketchv1.Platform:
-		m.platform = v
-		return nil
 	case *ketchv1.Pool:
 		m.pool = v
 		return nil
@@ -118,9 +107,6 @@ func (m *mockClient) Update(ctx context.Context, obj runtime.Object, opts ...cli
 	case *ketchv1.App:
 		m.app = v
 		return nil
-	case *ketchv1.Platform:
-		m.platform = v
-		return nil
 	case *ketchv1.Pool:
 		m.pool = v
 		return nil
@@ -130,11 +116,11 @@ func (m *mockClient) Update(ctx context.Context, obj runtime.Object, opts ...cli
 
 type packMocker struct{}
 
-func (packMocker) BuildAndPushImage(ctx context.Context, req packService.BuildRequest) error {
+func (packMocker) BuildAndPushImage(ctx context.Context, req pack.BuildRequest) error {
 	return nil
 }
 
-func getImageConfig(ctx context.Context, args imageConfigRequest) (*registryv1.ConfigFile, error) {
+func getImageConfig(ctx context.Context, args deploy.ImageConfigRequest) (*registryv1.ConfigFile, error) {
 	return &registryv1.ConfigFile{
 		Config: registryv1.Config{
 			Cmd: []string{"/bin/eatme"},
@@ -161,13 +147,12 @@ kubernetes:
 `
 
 func TestNewCommand(t *testing.T) {
-
 	tt := []struct {
 		name      string
-		params    *Params
+		params    *deploy.Services
 		arguments []string
 		setup     func(t *testing.T)
-		validate  func(t *testing.T, m getterCreator)
+		validate  func(t *testing.T, m deploy.Client)
 		wantError bool
 	}{
 		// build from source, creates app
@@ -186,7 +171,7 @@ func TestNewCommand(t *testing.T) {
 				require.Nil(t, os.Chdir(dir))
 				require.Nil(t, ioutil.WriteFile("src/ketch.yaml", []byte(ketchYaml), 0600))
 			},
-			validate: func(t *testing.T, m getterCreator) {
+			validate: func(t *testing.T, m deploy.Client) {
 				mock, ok := m.(*mockClient)
 				require.True(t, ok)
 				require.Equal(t, "mypool", mock.app.Spec.Pool)
@@ -194,7 +179,7 @@ func TestNewCommand(t *testing.T) {
 				require.Len(t, mock.app.Spec.Deployments[0].KetchYaml.Kubernetes.Processes, 3)
 				require.Len(t, mock.app.Spec.Env, 2)
 			},
-			params: &Params{
+			params: &deploy.Services{
 				Client: func() *mockClient {
 					m := newMockClient()
 					m.get[1] = func(_ *mockClient, _ runtime.Object) error {
@@ -231,7 +216,7 @@ func TestNewCommand(t *testing.T) {
 				require.Nil(t, os.Chdir(dir))
 				require.Nil(t, ioutil.WriteFile("config/ketch.yaml", []byte(ketchYaml), 0600))
 			},
-			validate: func(t *testing.T, m getterCreator) {
+			validate: func(t *testing.T, m deploy.Client) {
 				mock, ok := m.(*mockClient)
 				require.True(t, ok)
 				require.Equal(t, "mypool", mock.app.Spec.Pool)
@@ -240,7 +225,7 @@ func TestNewCommand(t *testing.T) {
 				require.Len(t, mock.app.Spec.Env, 2)
 				require.Equal(t, "supersecret", mock.app.Spec.DockerRegistry.SecretName)
 			},
-			params: &Params{
+			params: &deploy.Services{
 				Client: func() *mockClient {
 					m := newMockClient()
 
@@ -268,13 +253,13 @@ func TestNewCommand(t *testing.T) {
 				require.Nil(t, os.Mkdir(path.Join(dir, "src"), 0700))
 				require.Nil(t, os.Chdir(dir))
 			},
-			validate: func(t *testing.T, m getterCreator) {
+			validate: func(t *testing.T, m deploy.Client) {
 				mock, ok := m.(*mockClient)
 				require.True(t, ok)
 				require.Equal(t, mock.app.Spec.Pool, "mypool")
 
 			},
-			params: &Params{
+			params: &deploy.Services{
 				Client: func() *mockClient {
 					m := newMockClient()
 					m.app.Spec.Deployments = []ketchv1.AppDeploymentSpec{
@@ -310,7 +295,7 @@ func TestNewCommand(t *testing.T) {
 				require.Nil(t, os.Mkdir(path.Join(dir, "src"), 0700))
 				require.Nil(t, os.Chdir(dir))
 			},
-			params: &Params{
+			params: &deploy.Services{
 				Client: func() *mockClient {
 					m := newMockClient()
 					m.get[1] = func(_ *mockClient, _ runtime.Object) error {
@@ -339,7 +324,7 @@ func TestNewCommand(t *testing.T) {
 				dir := t.TempDir()
 				require.Nil(t, os.Chdir(dir))
 			},
-			params: &Params{
+			params: &deploy.Services{
 				Client: func() *mockClient {
 					m := newMockClient()
 					m.get[1] = func(_ *mockClient, _ runtime.Object) error {
@@ -369,7 +354,7 @@ func TestNewCommand(t *testing.T) {
 				require.Nil(t, os.Mkdir(path.Join(dir, "src"), 0700))
 				require.Nil(t, os.Chdir(dir))
 			},
-			params: &Params{
+			params: &deploy.Services{
 				Client: func() *mockClient {
 					m := newMockClient()
 					m.get[1] = func(_ *mockClient, _ runtime.Object) error {
@@ -400,7 +385,7 @@ func TestNewCommand(t *testing.T) {
 				require.Nil(t, os.Mkdir(path.Join(dir, "src"), 0700))
 				require.Nil(t, os.Chdir(dir))
 			},
-			params: &Params{
+			params: &deploy.Services{
 				Client: func() *mockClient {
 					m := newMockClient()
 					m.get[1] = func(_ *mockClient, _ runtime.Object) error {
@@ -419,12 +404,19 @@ func TestNewCommand(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
+			// restore working dir so we don't screw up other tests
+			wd, err := os.Getwd()
+			require.Nil(t, err)
+			defer func() {
+				_ = os.Chdir(wd)
+			}()
+
 			if tc.setup != nil {
 				tc.setup(t)
 			}
-			cmd := NewCommand(tc.params)
+			cmd := newAppDeployCmd(tc.params)
 			cmd.SetArgs(tc.arguments)
-			err := cmd.Execute()
+			err = cmd.Execute()
 			if tc.wantError {
 				t.Logf("got error %s", err)
 				require.NotNil(t, err)
