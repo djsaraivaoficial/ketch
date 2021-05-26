@@ -48,7 +48,7 @@ func newAppDeployCmd(params *deploy.Services) *cobra.Command {
 
 	cmd.Flags().StringVar(&options.ProcfileFileName, deploy.FlagProcFile, "", "Path to procfile.")
 	cmd.Flags().BoolVar(&options.StrictKetchYamlDecoding, deploy.FlagStrict, false, "Enforces strict decoding of ketch.yaml.")
-	cmd.Flags().IntVar(&options.Steps, deploy.FlagSteps, 2, "Number of steps for a canary deployment.")
+	cmd.Flags().IntVar(&options.Steps, deploy.FlagSteps, 0, "Number of steps for a canary deployment.")
 	cmd.Flags().StringVar(&options.StepTimeInterval, deploy.FlagStepInterval, "", "Time interval between canary deployment steps. Supported min: m, hour:h, second:s. ex. 1m, 60s, 1h.")
 	cmd.Flags().BoolVar(&options.Wait, deploy.FlagWait, false, "If true blocks until deploy completes or a timeout occurs.")
 	cmd.Flags().StringVar(&options.Timeout, deploy.FlagTimeout, "20s", "Defines the length of time to block waiting for deployment completion. Supported min: m, hour:h, second:s. ex. 1m, 60s, 1h.")
@@ -57,6 +57,8 @@ func newAppDeployCmd(params *deploy.Services) *cobra.Command {
 	cmd.Flags().StringSliceVarP(&options.Envs, deploy.FlagEnvironment, deploy.FlagEnvironmentShort, []string{}, "App env variables.")
 	cmd.Flags().StringVarP(&options.Pool, deploy.FlagPool, deploy.FlagPoolShort, "", "Pool to deploy your app.")
 	cmd.Flags().StringVarP(&options.DockerRegistrySecret, deploy.FlagRegistrySecret, "", "", "A name of a Secret with docker credentials. This secret must be created in the same namespace of the pool.")
+	cmd.Flags().StringVar(&options.Builder, deploy.FlagBuilder, "heroku/buildpacks:18", "Builder to use when building from source.")
+	cmd.Flags().StringSliceVar(&options.BuildPacks, deploy.FlagBuildPacks, nil, "A list of build packs")
 
 	return cmd
 }

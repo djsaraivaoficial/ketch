@@ -196,7 +196,7 @@ func TestNewCommand(t *testing.T) {
 		},
 		// build from source, updates app
 		{
-			name: "with custom yaml path and includes",
+			name: "with custom yaml path",
 			arguments: []string{
 				"myapp",
 				"src",

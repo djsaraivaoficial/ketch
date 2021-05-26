@@ -3,7 +3,6 @@ package deploy
 import (
 	"context"
 	"fmt"
-
 	"io"
 	"io/ioutil"
 	"os"
@@ -111,6 +110,10 @@ func (o Options) GetChangeSet(flags *pflag.FlagSet) *ChangeSet {
 	var cs ChangeSet
 	cs.appName = o.AppName
 	cs.yamlStrictDecoding = o.StrictKetchYamlDecoding
+
+	// setting values for defaults we want to retain
+	cs.builder = &o.Builder
+	cs.timeout = &o.Timeout
 
 	if o.AppSourcePath != "" {
 		cs.sourcePath = &o.AppSourcePath
